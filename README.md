@@ -5,6 +5,8 @@
 
 ## 検証
 
+tarindexer.py の出力するオフセットから，ファイルをダウンロードする．
+
 梱包
 ```bash
 cd test_images; tar -cf archive.tar *; mv archive.tar ..; cd ..; # OK
@@ -62,6 +64,36 @@ cmp test_images/03_cat_sakura_cut_female.png 03_cat_sakura_cut_female.png
 cmp test_images/04_cat_sakura_cut_male.png 04_cat_sakura_cut_male.png
 ```
 
+## 検証２
+
+ls したバイト数から逆算する．
+
+ls の結果をファイルに保存する
+```bash
+ls -al ./test_images/ | tail -n +4 | awk '{print $5" "$9}' > list.txt
+```
+
+```bash
+cat list.txt
+161684 01_yumekawa_animal_neko.png
+344959 02_cat_sabineko.png
+219206 03_cat_sakura_cut_female.png
+303868 04_cat_sakura_cut_male.png
+```
+
+計算する
+方法：tar のバイナリ構想が 512 バイト単位で分割されていることを利用する．ひとまず POSIX tar のバイナリと互換性があることを前提とする．
+(tar の種類によりバイナリ互換がない場合があるので注意する．特にパスやファイル名が長い場合は，gtar は POSIX tar とバイナリ互換性を保っていない，と思われる)．
+```bash
+Begin End
+[offset] [offset+filesize-1]
+
+512 512+161684-1 -> 512 162195
+(ROUNDUP(162195/512)+1)*512 offset+344959-1 -> 162816 162816+344959-1 -> 162816 507774
+(ROUNDUP(507774/512)+1)*512 offset+219206-1 -> 508416 508416+219206-1 -> 508416 727621
+(ROUNDUP(727621/512)+1)*512 offset+303868-1 -> 728576 728576+303868-1 -> 728576 1032443
+```
+
 ## 参考
 
 - [test_images](https://www.irasutoya.com/search?q=%E3%81%AD%E3%81%93)
@@ -70,4 +102,8 @@ cmp test_images/04_cat_sakura_cut_male.png 04_cat_sakura_cut_male.png
 - [オブジェクトのダウンロード](https://docs.aws.amazon.com/ja_jp/AmazonS3/latest/userguide/download-objects.html)
   > オブジェクトの一部をダウンロードする必要がある場合は、AWS CLI または REST API で追加のパラメータを使用して、ダウンロードするバイトのみを指定します。詳細については、「オブジェクトの一部のダウンロード」を参照してください。
 - [オブジェクトの一部のダウンロード](https://docs.aws.amazon.com/ja_jp/AmazonS3/latest/userguide/download-objects.html#download-objects-parts)
+- [tar の構造](http://www.redout.net/data/tar.html)
+- [tar で長い名前のファイルを固めたかった話。](https://zisakuzien.exblog.jp/12788192/)
+- [ファイルシステムってそんなに簡単に作れるの？](https://monoist.itmedia.co.jp/mn/articles/1004/05/news082_2.html)
+- [TAR(5)](http://www.yosbits.com/opensonar/rest/man/freebsd/man/ja/man5/tar.5.html?l=ja)
 
